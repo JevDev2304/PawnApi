@@ -243,17 +243,23 @@ class ConnectionDB:
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sell with this id was not found")
 
-    #TODO CREATE SELL
-    def add_sell(self):
-        pass
+        #TODO CREATE SELL
+    def add_sell(self, idventa: int, detalle: str, cantidad: int):
+        query = "INSERT INTO VENTA (idventa, detalle, cantidad) VALUES (%s, %s, %s);"
+        variables = (idventa, detalle, cantidad)
+        self.executeSQL(query, variables)
 
     #TODO DELETE SELL
-    def delete_sell(self):
-        pass
+    def delete_sell(self, idventa: int):
+        query = "DELETE FROM VENTA WHERE idventa = %s;"
+        variables = (idventa,)
+        self.executeSQL(query, variables)
 
     #TODO UPDATE SELL
-    def update_sell(self):
-        pass
+    def update_sell(self, idventa: int, new_detalle: str, new_cantidad: int):
+        query = "UPDATE VENTA SET detalle = %s, cantidad = %s WHERE idventa = %s;"
+        variables = (new_detalle, new_cantidad, idventa)
+        self.executeSQL(query, variables)
 
     #PAWN
     def get_pawn_by_id(self, idempennio: int):
