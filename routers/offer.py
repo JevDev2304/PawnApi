@@ -9,12 +9,12 @@ from tools.upload_image import upload_img
 IMAGEDIR = "../static/images/"
 current_dir = os.path.dirname(os.path.realpath(__file__))
 absolute_imagedir = os.path.join(current_dir, IMAGEDIR)
+
 dbConnect = ConnectionDB()
 offerRouter = APIRouter(prefix="/offer", tags=["offer"])
 
 @offerRouter.post("/MakePawnByClient", status_code= status.HTTP_201_CREATED,response_model=Offer)
 async def offer(nombre, descripcion, categoria, precio : int, id_usuario : int,image: UploadFile = File(...)):
-    dbConnect.get_user_by_id(id_usuario)
     categoria = check_category(categoria)
     img_dir = await upload_img(absolute_imagedir, image)
     dict_product = {
@@ -36,7 +36,6 @@ async def offer(nombre, descripcion, categoria, precio : int, id_usuario : int,i
 
 @offerRouter.post("/MakeSellByClient", status_code= status.HTTP_201_CREATED, response_model=Offer)
 async def offer(nombre, descripcion, categoria, precio : int, id_usuario: int,image: UploadFile = File(...)):
-    dbConnect.get_user_by_id(id_usuario)
     categoria = check_category(categoria)
     img_dir = await upload_img(absolute_imagedir, image)
     dict_product = {
@@ -47,6 +46,7 @@ async def offer(nombre, descripcion, categoria, precio : int, id_usuario: int,im
     }
     dbConnect.add_product(dict_product["imagen"],dict_product["nombre"], dict_product["descripcion"], dict_product["categoria"] )
     product = dbConnect.get_product_by_image(img_dir)
+    dbConnect.get_user_by_id(id_usuario)
     offer = {
         "precio" : precio,
         "producto_idproducto" : product["idproducto"],
@@ -54,6 +54,58 @@ async def offer(nombre, descripcion, categoria, precio : int, id_usuario: int,im
     }
     offer =dbConnect.add_offer_type_sell_by_client(offer["precio"], offer["producto_idproducto"], offer["ofertante"])
     return JSONResponse(content=offer, status_code=status.HTTP_201_CREATED)
+
+@offerRouter.get("/Get_sells_offers_in_client_peding_state", response_model=List[Offer])
+async def get_pending_client_sells():
+    try:
+        sells = dbConnect.get_sells_offers_in_client_peding_state()
+        return JSONResponse(content=sells, status_code=status.HTTP_200_OK)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@offerRouter.get("/Get_sells_offers_in_shop_peding_state", response_model=List[Offer])
+async def get_pending_shop_sells(idusuario: int):
+    try:
+        sells = dbConnect.get_peding_sell_offer_by_userid(idusuario)
+        return JSONResponse(content=sells, status_code=status.HTTP_200_OK)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+@offerRouter.put("/update_offer_client", status_code=status.HTTP_200_OK, response_model=Offer)
+async def update_offer(contra_oferta: int, idoferta: int, usuario_idusuario: int, producto_idproducto: int):
+    try:
+        dbConnect.update_offer_with_counteroffer_client(
+            contra_oferta=contra_oferta,
+            idoferta=idoferta,
+            usuario_idusuario=usuario_idusuario,
+            producto_idproducto=producto_idproducto
+        )
+        update_offer = dbConnect.get_oferta_by_id(idoferta)  # Asumiendo que tienes este método
+        return JSONResponse(content=update_offer, status_code=status.HTTP_200_OK)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@offerRouter.put("/update_offer_shop", status_code=status.HTTP_200_OK, response_model=Offer)
+async def update_offer(contra_oferta: int, idoferta: int, producto_idproducto: int):
+    try:
+        dbConnect.update_offer_with_counteroffer_shop(
+            contra_oferta=contra_oferta,
+            idoferta=idoferta,
+            producto_idproducto=producto_idproducto
+        )
+        update_offer = dbConnect.get_oferta_by_id(idoferta)  # Asumiendo que tienes este método
+        return JSONResponse(content=update_offer, status_code=status.HTTP_200_OK)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @offerRouter.get("/SalesByShop", status_code=status.HTTP_200_OK)
 async def salesByShop():
     sales = dbConnect.get_products_selling_by_shop()
